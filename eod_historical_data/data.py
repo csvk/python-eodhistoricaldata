@@ -46,6 +46,31 @@ def get_eod_data(symbol, exchange, start=None, end=None,
         raise RemoteDataError(r.status_code, r.reason, _url(url, params))
 
 
+def get_intraday_data(symbol, exchange, start=None, end=None,
+                 api_key=EOD_HISTORICAL_DATA_API_KEY_DEFAULT,
+                 session=None):
+    """
+    Returns intraday (1 min) for a given symbol
+    """
+    symbol_exchange = symbol + "." + exchange
+    session = _init_session(session)
+    start, end = _sanitize_dates(start, end)
+    endpoint = "/intraday/{symbol_exchange}".format(symbol_exchange=symbol_exchange)
+    url = EOD_HISTORICAL_DATA_API_URL + endpoint
+    params = {
+        "api_token": api_key,
+        "from": _format_date(start),
+        "to": _format_date(end)
+    }
+    r = session.get(url, params=params)
+    if r.status_code == requests.codes.ok:
+        df = pd.read_csv(StringIO(r.text), skipfooter=1,
+                         parse_dates=[0], index_col=0)
+        return df
+    else:
+        params["api_token"] = "YOUR_HIDDEN_API"
+        raise RemoteDataError(r.status_code, r.reason, _url(url, params))
+
 def get_dividends(symbol, exchange, start=None, end=None,
                   api_key=EOD_HISTORICAL_DATA_API_KEY_DEFAULT,
                   session=None):
